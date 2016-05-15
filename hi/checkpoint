@@ -1,0 +1,2 @@
+model_checkpoint_path: "patch4_grayEdge.pd"
+all_model_checkpoint_paths: "patch4_grayEdge.pd"
