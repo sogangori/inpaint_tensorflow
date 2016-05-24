@@ -50,7 +50,7 @@ trainDataCount=1000
 
 tf.app.flags.DEFINE_boolean("self_test", False, "True if running a self test.")
 FLAGS = tf.app.flags.FLAGS
-modelName = "patch.pd"
+modelName = "weights/patch.pd"
 isNewTrain=False
 
 def maybe_download(filename):

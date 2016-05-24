@@ -11,7 +11,9 @@ class MarkingPatchMaker():
     '''   
     patch_size = 9
     patchFolder = "patch"
-    #imgPath = "image/colors3.png"        
+    #imgPath = "image/golf_find_edges.png"
+    #imgPath = "image/ioi_zhu.jpg"
+    #imgPath = "image/colors2.jpg"        
     imgPath = "image/golf.png"
     IMAGE_SIZE=9
     CHANNEL=3

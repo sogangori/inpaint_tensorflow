@@ -34,7 +34,8 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from inpaint.MarkingPatchMaker import MarkingPatchMaker
 
-modelName = "patch4_grayEdge.pd"
+#modelName = "weights/patch4_grayEdge_long.pd"
+modelName = "weights/patch4_grayEdge.pd"
 IMAGE_SIZE = 9
 NUM_CHANNELS_In=5
 NUM_CHANNELS_Out=4
@@ -75,6 +76,17 @@ def inference(data, train=False):
     #  hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
     last= tf.matmul(hidden, fc2_weights) + fc2_biases    
     return tf.nn.sigmoid(last)
+
+def getLoss(prediction,labels_node):
+    loss1 = tf.reduce_mean(tf.square(prediction-labels_node))
+    loss2 = tf.reduce_mean(tf.square(prediction[:,9*9*(NUM_CHANNELS_Out-1):]-labels_node[:,9*9*(NUM_CHANNELS_Out-1):]))
+    loss = loss1+loss2*2
+    return loss
+    
+def regullarizer():
+    # L2 regularization for the fully connected parameters.
+    regularizers = (tf.nn.l2_loss(fc1_weights) + tf.nn.l2_loss(fc1_biases) +tf.nn.l2_loss(fc2_weights) + tf.nn.l2_loss(fc2_biases))
+    return regularizers
 
 def GetTrainInput(trainCount):    
     markerMaker = MarkingPatchMaker()

@@ -40,10 +40,8 @@ pygtk.require('2.0')
 import gtk
 
 IMAGE_SIZE = 9
-
 PIXEL_DEPTH = 255
 NUM_LABELS = 9*9*4
-
 
 def main(argv=None): 
   with tf.Session() as sess:
@@ -51,44 +49,50 @@ def main(argv=None):
     saver.restore(sess, inpaintPatch.modelName)
     print("Model restored")
     
-    trainCount=30
-    trainingSet, patchSet= inpaintPatch.GetTrainInput(trainCount)    
-    test_data = inpaintPatch.extract_data(trainingSet, trainCount)
-    output=inpaintPatch.inference(test_data,False)
+    testCount=45
+    trainingSet, patchSet= inpaintPatch.GetTrainInput(testCount)    
+    test_data = inpaintPatch.extract_data(trainingSet, testCount)
+    prediction = inpaintPatch.inference(test_data, False)
     print("patch.reshape size", numpy.size(patchSet.reshape))
-    loss = tf.reduce_mean(tf.square(output-patchSet.reshape(trainCount,NUM_LABELS)))
+    loss = tf.reduce_mean(tf.square(prediction-patchSet.reshape(testCount,NUM_LABELS)))
     print("loss",sess.run(loss))
      
-    outputUint = numpy.uint8(sess.run(output)*255)        
+    outputUint = numpy.uint8(sess.run(prediction)*255)        
     outputUint = outputUint.reshape(numpy.size(outputUint))
       
     gtkWin=GTK_Window()
     CHANNEL=3
     CHANNEL_In=5
     CHANNEL_Out=4
-    showWidth=81
+    showWidth=66
     RGBSize=IMAGE_SIZE*IMAGE_SIZE*CHANNEL
     RGBASize=IMAGE_SIZE*IMAGE_SIZE*(CHANNEL_Out)
     wh = IMAGE_SIZE*IMAGE_SIZE
     
-    for i in range(0,trainCount):
+    for i in range(0,testCount):
         onePatch = numpy.zeros(shape=(IMAGE_SIZE*IMAGE_SIZE*CHANNEL), dtype=numpy.ubyte)    
         oneMarkingPatch = numpy.zeros(shape=(IMAGE_SIZE*IMAGE_SIZE*CHANNEL), dtype=numpy.ubyte)
         oneOutput = numpy.zeros(shape=(IMAGE_SIZE*IMAGE_SIZE*CHANNEL), dtype=numpy.ubyte)        
         inputMarker = numpy.zeros(shape=(IMAGE_SIZE*IMAGE_SIZE*CHANNEL), dtype=numpy.ubyte)
         predictMarkerImage = numpy.zeros(shape=(IMAGE_SIZE*IMAGE_SIZE*CHANNEL), dtype=numpy.ubyte)
+        edgeImage = numpy.zeros(shape=(IMAGE_SIZE*IMAGE_SIZE*CHANNEL), dtype=numpy.ubyte)
         
         onePatch[:]=patchSet[i*RGBASize:i*RGBASize+RGBSize]
         oneMarkingPatch[:]=trainingSet[i*wh*CHANNEL_In:i*wh*CHANNEL_In+RGBSize]    
         oneOutput[:]= outputUint[i*RGBASize:i*RGBASize+RGBSize]        
         oneInputMarker= trainingSet[i*wh*CHANNEL_In +wh*3:i*wh*CHANNEL_In+wh*4]
-        predictMarker= outputUint[i*RGBASize+RGBSize:i*RGBASize+RGBASize]
+        
         for j in range(0,IMAGE_SIZE*IMAGE_SIZE ):
             inputMarker[j*3+1]=oneInputMarker[j]
-            predictMarkerImage[j*3+1]=predictMarker[j]*100                        
+            edgeImage[j*3+0]=trainingSet[i*wh*CHANNEL_In+RGBASize+j]
+            edgeImage[j*3+2]=edgeImage[j*3+1]=edgeImage[j*3+0]
+            predictMarkerImage[j*3+1]=outputUint[i*RGBASize+RGBSize+j]                          
+            if outputUint[i*RGBASize+RGBSize+j]>1:
+                predictMarkerImage[j*3+1]=255
         
         gtkWin.ShowImage(onePatch.reshape(IMAGE_SIZE,IMAGE_SIZE,CHANNEL),showWidth)
         gtkWin.ShowImage(inputMarker.reshape(IMAGE_SIZE,IMAGE_SIZE,CHANNEL),showWidth)
+        gtkWin.ShowImage(edgeImage.reshape(IMAGE_SIZE,IMAGE_SIZE,CHANNEL),showWidth)
         gtkWin.ShowImage(oneMarkingPatch.reshape(IMAGE_SIZE,IMAGE_SIZE,CHANNEL),showWidth)     
         gtkWin.ShowImage(oneOutput.reshape(IMAGE_SIZE,IMAGE_SIZE,CHANNEL),showWidth)
         gtkWin.ShowImage(predictMarkerImage.reshape(IMAGE_SIZE,IMAGE_SIZE,CHANNEL),showWidth)

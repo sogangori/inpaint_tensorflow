@@ -3,6 +3,7 @@
 # example layout.py
 
 import pygtk
+from matplotlib.colors import Colormap
 pygtk.require('2.0')
 import gtk
 import random
@@ -112,9 +113,9 @@ class GTK_Window:
         self.imageShowCount=0
         
     def AddLabel(self, text):
-        label = gtk.Label(text)
-        self.layout.put(label,self.X0+ self.imageShowCount*self.paddig+ self.imageShowCount*100, self.Y0)
-                
+        label = gtk.Label(text)        
+        #self.layout.put(label,self.X0+ self.imageShowCount*self.paddig+ self.imageShowCount*100, self.Y0)
+        self.layout.put(label,self.X0,self.Y0)
         
 def main():
     # enter the main loop

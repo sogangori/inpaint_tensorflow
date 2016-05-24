@@ -51,7 +51,7 @@ NUM_EPOCHS = 50 # 10
 EVAL_BATCH_SIZE = 2
 EVAL_FREQUENCY = 10  # Number of steps between evaluations.
 trainCount=30
-
+modelName = "weights/patch.pd"
 tf.app.flags.DEFINE_boolean("self_test", False, "True if running a self test.")
 FLAGS = tf.app.flags.FLAGS
 
@@ -223,7 +223,7 @@ def main(argv=None):  # pylint: disable=unused-argument
     saver = tf.train.Saver()
     # Launch the graph.
     sess = tf.Session()    
-    saver.restore(sess, "patch.pd")
+    saver.restore(sess, modelName)
     print("Model restored")
         
     markerMaker = MarkingPatchMaker()
