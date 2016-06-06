@@ -14,7 +14,9 @@ class MarkingPatchMaker():
     #imgPath = "image/golf_find_edges.png"
     #imgPath = "image/ioi_zhu.jpg"
     #imgPath = "image/colors2.jpg"        
-    imgPath = "image/golf.png"
+    imgPath = "../image/building.jpg"
+    imgPath = "../image/New_york_retribution.png"
+    imgPath = "../image/new_york1.png"
     IMAGE_SIZE=9
     CHANNEL=3
     patchMaker = PatchMaker()

@@ -7,6 +7,7 @@ from matplotlib.colors import Colormap
 pygtk.require('2.0')
 import gtk
 import random
+import numpy
 from inpaint.MarkingPatchMaker import MarkingPatchMaker
 
 class GTK_Window:
@@ -92,6 +93,25 @@ class GTK_Window:
         imageMarker.set_from_pixbuf(pixbufMarker)
         self.layout.put(imageMarker, self.paddig+self.imageShowCount*showWidth, showWidth)
     
+    def ShowGrayImage(self,data,w,h,channel, showWidth):
+        data3=data;
+        if channel==1:    
+            data3 = numpy.zeros(shape=(w,h,3), dtype=numpy.ubyte)
+            for y in range(0,h ):
+                for x in range(0,w ):
+                    data3[y,x,0]=data[y,x]    
+                    data3[y,x,1]=data[y,x]
+                    data3[y,x,2]=0
+            
+        pixbufPatch =gtk.gdk.pixbuf_new_from_array(data3, gtk.gdk.COLORSPACE_RGB, 8)
+        pixbufPatch = pixbufPatch.scale_simple(showWidth, showWidth, gtk.gdk.INTERP_BILINEAR)
+        image2 = gtk.Image()
+        image2.set_from_pixbuf(pixbufPatch)
+        
+        self.layout.put(image2,self.X0+ self.imageShowCount*self.paddig+ self.imageShowCount*showWidth, self.Y0)
+        self.imageShowCount+=1
+        self.window.show_all()
+        
     def ShowImage(self,data,showWidth):    
             
         pixbufPatch =gtk.gdk.pixbuf_new_from_array(data, gtk.gdk.COLORSPACE_RGB, 8)
