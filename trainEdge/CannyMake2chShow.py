@@ -1,10 +1,12 @@
 import scipy.ndimage as ndi
 import scipy
 import numpy
-import Image
+from PIL import Image
 import math
-from trainEdge.CannyMaker import CannyMaker
-from inpaint.GTK_windows import GTK_Window
+import sys,os
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'inpaint'))
+from CannyMaker import CannyMaker
+from GTK_windows import GTK_Window
 import pygtk
 pygtk.require('2.0')
 import gtk

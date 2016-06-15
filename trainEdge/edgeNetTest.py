@@ -23,13 +23,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy
+import numpy, sys, os
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-from inpaint.MarkingPatchMaker import MarkingPatchMaker
-from inpaint.GTK_windows import GTK_Window
-from trainEdge import edgeNet as model
+print (sys.argv)
+print (sys.path)
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'inpaint'))
+from MarkingPatchMaker import MarkingPatchMaker
+from GTK_windows import GTK_Window
+import edgeNet as model
 import pygtk
 pygtk.require('2.0')
 import gtk
@@ -51,7 +54,7 @@ def main(argv=None):
         "conv4_b": model.conv4_biases,
         "conv4_w": model.conv4_weights       
         })
-    saver.restore(sess, model.modelName_new)
+    saver.restore(sess, model.modelName)
     print("Model restored 1 ")   
         
     testCount=61
@@ -84,7 +87,7 @@ def main(argv=None):
         
         gtkWin.ShowGrayImage(trainIn[i].reshape(IMAGE_SIZE,IMAGE_SIZE),IMAGE_SIZE,IMAGE_SIZE,CHANNEL,showWidth)
         gtkWin.ShowGrayImage(labelSet[i].reshape(IMAGE_SIZE,IMAGE_SIZE),IMAGE_SIZE,IMAGE_SIZE,CHANNEL,showWidth)
-        gtkWin.ShowGrayImage(outputUint[i].reshape(IMAGE_SIZE,IMAGE_SIZE),IMAGE_SIZE,IMAGE_SIZE,CHANNEL,showWidth)        
+        gtkWin.ShowGrayImage(outputUint[i].reshape(IMAGE_SIZE,IMAGE_SIZE),IMAGE_SIZE,IMAGE_SIZE,CHANNEL,showWidth,1)        
         #gtkWin.AddLabel("loss:"+numpy.str(sess.run(loss)))
         gtkWin.AddOffsetX(50)
 

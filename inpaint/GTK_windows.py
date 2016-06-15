@@ -2,13 +2,15 @@
 
 # example layout.py
 
+import sys
+sys.path.append("/usr/lib/python2.7/dist-packages")
 import pygtk
 from matplotlib.colors import Colormap
 pygtk.require('2.0')
 import gtk
 import random
 import numpy
-from inpaint.MarkingPatchMaker import MarkingPatchMaker
+from MarkingPatchMaker import MarkingPatchMaker
 
 class GTK_Window:
     paddig=2
@@ -32,7 +34,7 @@ class GTK_Window:
         # create the top level window
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title("Layout Example")
-        self.window.set_default_size(1500,1000)
+        self.window.set_default_size(1600,1000)
         self.window.set_position(5)
         self.window.connect("delete-event", self.WindowDeleteEvent)
         self.window.connect("destroy", self.WindowDestroy)
@@ -93,13 +95,16 @@ class GTK_Window:
         imageMarker.set_from_pixbuf(pixbufMarker)
         self.layout.put(imageMarker, self.paddig+self.imageShowCount*showWidth, showWidth)
     
-    def ShowGrayImage(self,data,w,h,channel, showWidth):
+    def ShowGrayImage(self,data,w,h,channel, showWidth, rgb=0):
         data3=data;
         if channel==1:    
             data3 = numpy.zeros(shape=(w,h,3), dtype=numpy.ubyte)
             for y in range(0,h ):
                 for x in range(0,w ):
-                    data3[y,x,0]=data[y,x]    
+                    if rgb==0:
+                        data3[y,x,0]=data[y,x]
+                    else:      
+                        data3[y,x,0]=0
                     data3[y,x,1]=data[y,x]
                     data3[y,x,2]=0
             

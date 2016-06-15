@@ -1,7 +1,7 @@
 import scipy.ndimage as ndi
 import scipy
 import numpy
-import Image
+from PIL import Image
 import math
 from math import pi
 from datetime import datetime
@@ -66,10 +66,9 @@ class CannyMaker():
         self.sobeloutmag = scipy.hypot(gradx, grady)        
         return self.sobeloutmag 
      
-    def makeSobel(self,patchImg):    
+    def makeSobel(self,patchImg,sigma = 2.2):    
         img = patchImg;
-        imgdata = numpy.array(img, dtype = float)
-        sigma = 2.2                                 
+        imgdata = numpy.array(img, dtype = float)                                         
         G = ndi.filters.gaussian_filter(imgdata, sigma)                           #gaussian low pass filter
         
         sobelout = Image.new('L', img.size)                                       #empty image
@@ -198,9 +197,9 @@ class CannyMaker():
         
     def cropPatch(self,patch_size):
         rgbImg = Image.open(self.file)  
-        random.seed( time.time())
+        random.seed( time.time()*1000)
         pivotPX=random.random()  
-        random.seed( time.time())     
+        random.seed( time.time()*1000)     
         pivotPY=random.random()
         srcW, srcH = rgbImg.size
         x1 = numpy.int(pivotPX*srcW)
@@ -267,54 +266,137 @@ class CannyMaker():
         patch_length = patch_size*patch_size;
         set = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
         setDam = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
-        kind = 5 
-        for i in range(0,count):       
-            if i%kind==0:     
-                grayPatch=self.cropPatchBalance(patch_size,numpy.float(i)/count);
+        kind = 4 
+        for i in range(0,count/kind):       
+            if i%2==0:     
+               grayPatch=self.cropPatchBalance(patch_size,numpy.float(i)/count);
             else:   
-                [rgbPatch,grayPatch]=self.cropPatch(patch_size);   
-             
-            if i%kind==0:             
-                [sobeloutmag,sobeloutdir]=self.makeSobel(grayPatch)
-                set[i][:] = self.reshapeImgToSingle(sobeloutdir,patch_length)
-            if i%kind==1:                
-                [sobeloutmag,sobeloutdir]=self.makeSobel(grayPatch)                
-                set[i][:] = numpy.reshape(numpy.asarray(sobeloutmag*2, dtype="uint8"),[patch_length]);
-            if i%kind==2:             
-                set[i][:] = numpy.reshape(numpy.asarray(grayPatch, dtype="uint8"),[patch_length]);
-            if i%kind==3:
-                sobeloutdirquentize=self.makeSobelOut()
-                set[i][:] = numpy.reshape(numpy.asarray(sobeloutdirquentize, dtype="uint8"),[patch_length]);  
-            if i%kind==4:
-                dx = ndi.sobel(grayPatch, 0)  # horizontal derivative
-                dy = ndi.sobel(grayPatch, 1)  # vertical derivative
-                mag = numpy.hypot(dx, dy)  # magnitude
-                mag *= 255.0 / numpy.max(mag)  # normalize (Q&D)                
-                set[i][:] = numpy.reshape(numpy.asarray(mag, dtype="uint8"),[patch_length]);
-            for k in range(0,patch_length/2):
-                setDam[i][k]=set[i][k] 
+                [rgbPatch,grayPatch]=self.cropPatch(patch_size);
+            for k in range(0,kind):
+                dstIndex = i*kind+k;
+                makeImage=0;
+                if k%kind==0:
+                    makeImage=grayPatch;
+                if k%kind==1:
+                    [makeImage,sobeloutdir]=self.makeSobel(grayPatch,sigma = 0.5)
+                if k%kind==2:
+                    [makeImage,sobeloutdir]=self.makeSobel(grayPatch,sigma = 1.6)
+                if k%kind==3:                    
+                    [makeImage,sobeloutdir]=self.makeSobel(grayPatch)
+                
+                set[dstIndex][:] = numpy.reshape(numpy.asarray(makeImage, dtype="uint8"),[patch_length]);
+                for j in range(0,patch_length/2):
+                    setDam[dstIndex][j]=set[dstIndex][j] 
             
         return [set,setDam]
     
-    def generatePatchSet3(self, file, count, patch_size):
+    def randomUnknownArray(self, arrayLength, unknownRatio ):        
+        unknownCount= numpy.int( arrayLength*unknownRatio)
+        
+        x  =  random.randint(0,arrayLength-unknownCount)
+        random.seed( time.time()*x)
+        arr=numpy.ones(arrayLength, dtype="float")    
+        for x in range(x, x+unknownCount):
+            arr[x] = 0
+        return arr
+    
+    def randomUnknownArrayrandom(self, arrayLength, unknownRatio ):        
+        
+        x  =  random.randint(0,numpy.int(arrayLength-arrayLength*unknownRatio))
+        random.seed( time.time()*x)
+        arr=numpy.ones(arrayLength, dtype="float")
+        
+        for x in range(arrayLength-x, arrayLength):
+            arr[x] = 0
+        return arr
+
+    def generatePatchSetWhatStudy(self, file, count, patch_size, unknownRatio=0.5):
         self.readImage(file)        
         patch_length = patch_size*patch_size;
-        channel = 2
-        set = numpy.zeros(shape=(count,channel,patch_length), dtype=numpy.ubyte)
-        setDam = numpy.zeros(shape=(count,channel,patch_length), dtype=numpy.ubyte)
-        for i in range(0,count):            
-            grayPatch=self.cropPatchBalance(patch_size,numpy.float(i)/count);                
-            [sobeloutmag,sobeloutdir]=self.makeSobel(grayPatch)                           
-            set[i][0][:] = numpy.reshape(numpy.asarray(sobeloutmag, dtype="uint8"),[patch_length]);
-            set[i][1][:] = numpy.reshape(numpy.asarray(sobeloutdir, dtype="uint8"),[patch_length]);
-            for k in range(0,patch_length/2):
-                setDam[i][0][k]=set[i][0][k] 
-                setDam[i][1][k]=set[i][1][k]
-            
-        return [set,setDam]
-                    
-                    
-        
-        
+        set = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
+        setDamege = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
+                 
+        for i in range(0,count):
+            n2  = self.randomUnknownArray(patch_length, unknownRatio)       
+            if i%4==0:     
+                grayPatch=self.cropPatchBalance(patch_size,numpy.float(i)/count);
+            else:   
+                [rgbPatch,grayPatch]=self.cropPatch(patch_size);
+                       
+            set[i][:] = numpy.reshape(numpy.asarray(grayPatch, dtype="uint8"),[patch_length]);                                
+            setDamege[i][:]=set[i][:]*n2
+                            
+        return [set,setDamege]
          
-
+    def generatePatchSetWidthHint(self, file, count, patch_size, unknownRatio=0.5):
+        self.readImage(file)        
+        patch_length = patch_size*patch_size;
+        set = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
+        setDamege = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
+        setHint = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
+        unknownCount=numpy.int(patch_length*unknownRatio);
+        n0=numpy.ones(patch_length-unknownCount, dtype="float")    
+        n1=numpy.zeros(unknownCount, dtype="float")
+        n2=numpy.concatenate((n0, n1), axis=0)
+        kind = 1 
+        for i in range(0,count/kind):       
+            if i%4==0:     
+                grayPatch=self.cropPatchBalance(patch_size,numpy.float(i)/count);
+            else:   
+                [rgbPatch,grayPatch]=self.cropPatch(patch_size);
+            for k in range(0,kind):
+                dstIndex = i*kind+k;
+                makeImage=0;
+                hintImage=0;
+                makeImage=grayPatch;
+                [hintImage,sobeloutdir]=self.makeSobel(grayPatch,sigma = 1.0)     
+                set[dstIndex][:] = numpy.reshape(numpy.asarray(makeImage, dtype="uint8"),[patch_length]);
+                setHint[dstIndex][:] = numpy.reshape(numpy.asarray(hintImage, dtype="uint8"),[patch_length]);                
+                setDamege[dstIndex][:]=set[dstIndex][:]*n2
+                            
+        return [set,setDamege,setHint]
+    
+    def  reversal(self,src):        
+        return src*-1+255
+    
+    def generatePatchSetChannel(self, file, count, patch_size, channel,unknownRatio=0.5):
+        self.readImage(file)        
+        patch_length = patch_size*patch_size;
+        inputSet = numpy.zeros(shape=(count,channel,patch_length), dtype=numpy.ubyte)
+        labelSet = numpy.zeros(shape=(count,patch_length), dtype=numpy.ubyte)
+        aug=2
+        rotate=4
+        for i in range(0,count/(aug*rotate)):
+            n2  = self.randomUnknownArrayrandom(patch_length, unknownRatio)
+            if i%4==3:     
+                grayPatch=self.cropPatchBalance(patch_size,numpy.float(i)/count);
+            else:   
+                [rgbPatch,grayPatch]=self.cropPatch(patch_size);
+           
+            [hintImage,sobeloutdir]=self.makeSobel(grayPatch,sigma = 0.6)
+            hintImage = numpy.reshape(numpy.asarray(hintImage, dtype="uint8"),[patch_length]);
+            hint2d   = numpy.reshape(numpy.asarray(hintImage, dtype="uint8"),[patch_size,patch_size])
+            srcImage = numpy.reshape(numpy.asarray(grayPatch, dtype="uint8"),[patch_length]);
+            srcImage2d  = numpy.reshape(numpy.asarray(srcImage, dtype="uint8"),[patch_size,patch_size])
+            
+            for  j in range(0,rotate):            
+                                 
+                srcRot90 = numpy.reshape(numpy.asarray(numpy.rot90(srcImage2d,j), dtype="uint8"),[patch_length])
+                hintRot90 = numpy.reshape(numpy.asarray(numpy.rot90(hint2d,j), dtype="uint8"),[patch_length])
+                dindex =  i*(aug*rotate)+j*(aug)
+                                     
+                labelSet[dindex+0][:] =srcRot90
+                labelSet[dindex+1][:] =self.reversal(srcRot90)
+                
+                inputSet[dindex+0][0][:]=labelSet[dindex]*n2
+                inputSet[dindex+1][0][:]= labelSet[dindex+1]*n2
+                
+                if channel>=2:
+                    inputSet[dindex+0][1][:] =n2*255                
+                    inputSet[dindex+1][1][:] =inputSet[dindex][1][:]                
+                    
+                if channel>=3:
+                    inputSet[dindex+0][2][:] =hintRot90*n2               
+                    inputSet[dindex+1][2][:] =hintRot90*n2
+            
+        return [inputSet,labelSet]

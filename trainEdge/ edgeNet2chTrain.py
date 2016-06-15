@@ -9,7 +9,7 @@ from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from trainEdge import edgeNet2ch as model
+import edgeNet2ch as model
 
 IMAGE_SIZE = 9
 VALIDATION_SIZE = 5000  # Size of the validation set.

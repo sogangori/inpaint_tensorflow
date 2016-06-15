@@ -28,17 +28,17 @@ from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from scipy.ndimage.filters import gaussian_filter
-from trainEdge.CannyMaker import CannyMaker
+from CannyMaker import CannyMaker
 
 imageFile = '../image/New_york_retribution.png'
-modelName = "../weights/edge2.pd"
-logName ="../weights/logs_edge2"
+modelName = "../weights/edge2ch.pd"
+logName ="../weights/logs_edge2ch"
 #$ tensorboard --logdir=/home/way/NVPACK/nvsample_workspace/python-mnist/weights/logs_edge1
 #browser  http://0.0.0.0:6006
 
 IMAGE_SIZE = 9
 NUM_CHANNELS_In=2
-NUM_CHANNELS_Out=2
+NUM_CHANNELS_Out=1
 PIXEL_DEPTH = 255.0
 NUM_LABELS = 9*9*NUM_CHANNELS_Out
 SEED = 66478  # Set to None for random seed.
@@ -50,7 +50,7 @@ conv2_weightCount=24
 conv3_kernelWidth=5
 conv3_weightCount=48
 conv4_kernelWidth=5
-conv4_weightCount=2
+conv4_weightCount=1
                
 conv1_weights= tf.Variable(tf.truncated_normal([conv1_kernelWidth, conv1_kernelWidth, NUM_CHANNELS_In, conv1_weightCount],stddev=0.1,seed=SEED),name="conv1_w")
 conv1_biases= tf.Variable(tf.zeros([conv1_weightCount]),name="conv1_b")
@@ -85,24 +85,6 @@ def inference(variableDic, train=False):
     
     return reshape;
 
-def getLoss_center(prediction,labels_node, train=True):
-    predic_shape = prediction.get_shape().as_list()
-    
-    scope = 3;
-                
-    loss = tf.reduce_mean(tf.square(prediction-labels_node))
-    if train:
-        loss_blur3 = tf.reduce_mean(tf.square(gaussian_filter(prediction, sigma=3)-gaussian_filter(labels_node, sigma=3)))
-        for i in range(0,predic_shape[0]):
-            for y in range(9):
-                for x in range(9):
-                    if y>5+scope and y<5-scope and  x>5+scope and x<5-scope :
-                        index = y*9+x
-                        prediction[i,index]=0
-                        labels_node[i,index]=0
-        lossCenter = tf.reduce_mean(tf.square(prediction-labels_node))
-        loss = (loss+loss_blur3+lossCenter)/3;
-    return loss
 
 def getLoss(prediction,labels_node, train=True):
     loss = tf.reduce_mean(tf.square(prediction-labels_node))

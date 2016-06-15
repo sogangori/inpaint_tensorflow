@@ -27,13 +27,14 @@ import numpy
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
+import numpy
 from scipy.ndimage.filters import gaussian_filter
-from trainEdge.CannyMaker import CannyMaker
+from CannyMaker import CannyMaker
 
 imageFile = '../image/New_york_retribution.png'
-modelName = "../weights/edge1.pd"
-modelName_new = "../weights/edge2.pd"
-logName ="../weights/logs_edge1"
+modelName = "../weights/edge3.pd"
+logName ="../weights/logs_edge3"
+# tensorboard --logdir=/home/digits/workspace_git/inpaint_tensorflow/weights/logs_edge3
 #$ tensorboard --logdir=/home/way/NVPACK/nvsample_workspace/python-mnist/weights/logs_edge1
 #browser  http://0.0.0.0:6006
 
@@ -47,11 +48,12 @@ SEED = 66478  # Set to None for random seed.
 conv1_kernelWidth=5
 conv1_weightCount=12
 conv2_kernelWidth=5
-conv2_weightCount=24
+conv2_weightCount=12
 conv3_kernelWidth=5
-conv3_weightCount=48
+conv3_weightCount=12
 conv4_kernelWidth=5
 conv4_weightCount=1
+pool_width=2
                
 conv1_weights= tf.Variable(tf.truncated_normal([conv1_kernelWidth, conv1_kernelWidth, NUM_CHANNELS_In, conv1_weightCount],stddev=0.1,seed=SEED),name="conv1_w")
 conv1_biases= tf.Variable(tf.zeros([conv1_weightCount]),name="conv1_b")
@@ -68,15 +70,15 @@ conv4_biases= tf.Variable(tf.constant(0.1, shape=[conv4_weightCount]),name="conv
 def inference(variableDic, train=False):   
     conv = tf.nn.conv2d(variableDic["input"],variableDic["conv1_weights"],strides=[1, 1, 1, 1],padding='SAME')
     relu = tf.nn.relu(tf.nn.bias_add(conv, variableDic["conv1_biases"]))  
-    pool = tf.nn.max_pool(relu,ksize=[1, 2, 2, 1],strides=[1, 1, 1, 1],padding='SAME')
+    pool = tf.nn.max_pool(relu,ksize=[1, pool_width, pool_width, 1],strides=[1, 1, 1, 1],padding='SAME')
     
     conv = tf.nn.conv2d(pool,variableDic["conv2_weights"],strides=[1, 1, 1, 1],padding='SAME')
     relu = tf.nn.relu(tf.nn.bias_add(conv, variableDic["conv2_biases"]))
-    pool = tf.nn.max_pool(relu,ksize=[1, 2, 2, 1],strides=[1, 1, 1, 1],padding='SAME')
+    pool = tf.nn.max_pool(relu,ksize=[1, pool_width, pool_width, 1],strides=[1, 1, 1, 1],padding='SAME')
     
     conv = tf.nn.conv2d(pool,variableDic["conv3_weights"],strides=[1, 1, 1, 1],padding='SAME')
     relu = tf.nn.relu(tf.nn.bias_add(conv, variableDic["conv3_biases"]))
-    pool = tf.nn.max_pool(relu,ksize=[1, 2, 2, 1],strides=[1, 1, 1, 1],padding='SAME')
+    pool = tf.nn.max_pool(relu,ksize=[1, pool_width, pool_width, 1],strides=[1, 1, 1, 1],padding='SAME')
     
     conv = tf.nn.conv2d(pool,variableDic["conv4_weights"],strides=[1, 1, 1, 1],padding='SAME')
     relu = tf.nn.sigmoid(tf.nn.bias_add(conv, variableDic["conv4_biases"]))
@@ -85,6 +87,23 @@ def inference(variableDic, train=False):
     reshape = tf.reshape(relu, [pool_shape[0], pool_shape[1] * pool_shape[2] * pool_shape[3]])
   
     return reshape;
+
+def getLoss_hint(prediction,labels_node,train_hint_node):
+    
+    n0=numpy.zeros(44, dtype="float")
+    n1=numpy.ones(9*9-44, dtype="float")    
+    n2=numpy.concatenate((n0, n1), axis=0)
+    n3=n2
+    predic_shape = prediction.get_shape().as_list()
+    for i in range(1,predic_shape[0]):
+        n3= numpy.concatenate((n3, n2), axis=0)
+    n4 = numpy.reshape(n3, [predic_shape[0], 9*9])
+    diffNode = prediction-labels_node;      
+    loss = tf.reduce_mean(tf.square((prediction-labels_node)))                                        
+                    
+    lossEdge = tf.reduce_mean(tf.square((prediction-labels_node)*train_hint_node*n4))
+    loss = (loss+lossEdge)/2;
+    return loss
 
 def getLoss_center(prediction,labels_node, train=True):
     predic_shape = prediction.get_shape().as_list()
@@ -107,9 +126,9 @@ def getLoss_center(prediction,labels_node, train=True):
 
 def getLoss(prediction,labels_node, train=True):
     loss = tf.reduce_mean(tf.square(prediction-labels_node))
-    if train:
-        loss_blur = tf.reduce_mean(tf.square(gaussian_filter(prediction, sigma=2)-gaussian_filter(labels_node, sigma=2)))
-        loss = (loss+loss_blur)/2;
+    #if train:
+    #    loss_blur = tf.reduce_mean(tf.square(gaussian_filter(prediction, sigma=2)-gaussian_filter(labels_node, sigma=2)))
+    #    loss = (loss+loss_blur)/2;
     return loss
     
 def regullarizer():
@@ -120,8 +139,9 @@ def regullarizer():
 
 def GetTrainInput(trainCount):    
     trainSetMaker = CannyMaker()
-    [set,DamagedSet] = trainSetMaker.generatePatchSet2mix(imageFile, trainCount, IMAGE_SIZE)    
-    return [DamagedSet, set]
+    unknownRatio=0.05
+    [labelSet,DamagedSet] = trainSetMaker.generatePatchSetWhatStudy(imageFile, trainCount, IMAGE_SIZE,unknownRatio)    
+    return [DamagedSet, labelSet]
 
 def extract_output(src, num_images):  
     data = numpy.frombuffer(src, dtype=numpy.uint8).astype(numpy.float32)

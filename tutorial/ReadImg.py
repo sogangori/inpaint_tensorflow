@@ -1,9 +1,6 @@
 import Image
 import numpy
 
-from resizeimage import resizeimage
-
-
 def load_image( infilename ) :
     img = Image.open( infilename )
     print (img)
@@ -36,7 +33,7 @@ PIXEL_DEPTH=255
 IMAGE_SIZE=100
 
 image = "/tmp/n5-1.png"
-image = "/tmp/ioi_zhu.jpg"
+image = "/tmp/golf.png"
 img=load_image(image);
 print( "original length", len(img))  
 imData = (img - (PIXEL_DEPTH / 2.0)) / PIXEL_DEPTH

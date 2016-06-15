@@ -1,8 +1,8 @@
-import Image
-import numpy
-from inpaint.MarkerMaker import MarkerMaker
-from inpaint.PatchMaker import PatchMaker
-import imageProcess.ImageConverter as imageConverter
+from PIL import Image
+import numpy, os,sys
+from MarkerMaker import MarkerMaker
+from PatchMaker import PatchMaker
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'imageProcess'))
 
 
 class MarkingPatchMaker():
@@ -154,9 +154,7 @@ class MarkingPatchMaker():
             rgba[numpy.size(rgb) : ] = self.marker
                      
             trainingSet[i*dstLength:i*dstLength+channel4L]=rgba
-            if dstChannel>4:
-                grayEdge=imageConverter.getRgbArray_GRAY_EdgeArray(self.patch)
-                trainingSet[i*dstLength+channel4L:i*dstLength+widthHeight*5]=grayEdge.reshape( numpy.size(grayEdge))
+            
             self.patchSet[i*RGBLength:i*RGBLength+RGBLength]=self.patch.reshape( numpy.size(self.patch))
             self.markerSet[i*widthHeight:i*widthHeight+widthHeight]=self.marker
             self.RGBASet[i*channel4L:i*channel4L+RGBLength]=self.patch.reshape( numpy.size(self.patch))            

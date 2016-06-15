@@ -1,2 +1,2 @@
-model_checkpoint_path: "edge2.pd"
-all_model_checkpoint_paths: "edge2.pd"
+model_checkpoint_path: "edge4ch.pd"
+all_model_checkpoint_paths: "edge4ch.pd"

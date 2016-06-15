@@ -9,19 +9,19 @@ from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from trainEdge import edgeNet as model
-
+import edgeNet as model
+#error 4600~5600
 IMAGE_SIZE = 9
 NUM_LABELS = 9 * 9 * 1
 VALIDATION_SIZE = 5000  # Size of the validation set.
-BATCH_SIZE = 16
+BATCH_SIZE = 4
 NUM_EPOCHS = 5
 EVAL_BATCH_SIZE = 16
-trainDataCount = 1024 * 4
+trainDataCount = 1024 * 16
 EVAL_FREQUENCY = trainDataCount / EVAL_BATCH_SIZE 
 FLAGS = tf.app.flags.FLAGS
 isNewTrain =  not True
-startLearningRate = 0.01
+startLearningRate = 0.001
 
 def main(argv=None):  # pylint: disable=unused-argument
       
@@ -29,8 +29,7 @@ def main(argv=None):  # pylint: disable=unused-argument
   # Extract it into numpy arrays.
   train_data = model.extract_data(trainIn, trainDataCount)
   train_labels = model.extract_output(trainOut, trainDataCount)
-      
-  # Generate a validation set.
+   
   validation_data = model.extract_data(trainIn, trainDataCount)
   validation_labels = model.extract_output(trainOut, trainDataCount)
     
@@ -42,6 +41,7 @@ def main(argv=None):  # pylint: disable=unused-argument
   # training step using the {feed_dict} argument to the Run() call below.
   train_data_node = tf.placeholder(tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, model.NUM_CHANNELS_In))
   train_labels_node = tf.placeholder(tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE * IMAGE_SIZE * model.NUM_CHANNELS_Out))
+  train_hint_node = tf.placeholder(tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE * IMAGE_SIZE * model.NUM_CHANNELS_Out))
   eval_data = tf.placeholder(tf.float32, shape=(EVAL_BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, model.NUM_CHANNELS_In))
   
    
@@ -62,6 +62,7 @@ def main(argv=None):  # pylint: disable=unused-argument
   eval_prediction = model.inference(tensor,True)
       
   cross_entropy = -tf.reduce_sum(train_prediction - train_labels_node)
+  #loss = model.getLoss_hint(train_prediction, train_labels_node,train_hint_node)
   loss = model.getLoss(train_prediction, train_labels_node)
   
   # Add the regularization term to the loss.
@@ -114,7 +115,7 @@ def main(argv=None):  # pylint: disable=unused-argument
         tf.initialize_all_variables().run()
         print('Initialized!')
     else :        
-        saver.restore(sess, model.modelName_new)
+        saver.restore(sess, model.modelName)
         print("Model restored")
         
     summary_writer = tf.train.SummaryWriter(model.logName, sess.graph)
@@ -124,6 +125,7 @@ def main(argv=None):  # pylint: disable=unused-argument
       offset = (step * BATCH_SIZE) % (train_size - BATCH_SIZE)
       batch_data = train_data[offset:(offset + BATCH_SIZE), ...]
       batch_labels = train_labels[offset:(offset + BATCH_SIZE)]
+           
          
       feed_dict = {train_data_node: batch_data,
                    train_labels_node: batch_labels}
@@ -136,7 +138,7 @@ def main(argv=None):  # pylint: disable=unused-argument
         print('Step %d (epoch %.2f), %.1f ms' % 
               (step, float(step) * BATCH_SIZE / train_size,
                1000 * elapsed_time / EVAL_FREQUENCY))
-        print('Minibatch loss: %.4f, learning rate: %.6f' % (l, lr))
+        print('learning rate: %.6f , Minibatch loss: %.4f' % (lr,l))        
         # Add histograms for trainable variables.
         for var in tf.trainable_variables():
             tf.histogram_summary(var.op.name, var)
@@ -152,7 +154,7 @@ def main(argv=None):  # pylint: disable=unused-argument
             print ('save_path', save_path)
         
     
-    save_path = saver.save(sess, model.modelName_new)
+    save_path = saver.save(sess, model.modelName)
     print ('save_path', save_path)
 
 if __name__ == '__main__':
